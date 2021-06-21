@@ -6,7 +6,8 @@ Player = Object.extend(Object)
 --    pacman: navigating and eating pellets etc
 --    player: controlled by user
 
-function Player.new(self, x, y)
+function Player.new(self, x, y, sprite, name)
+    self.name = name
     self.x = x
     self.y = y
     self.tile_x = 0
@@ -18,15 +19,45 @@ function Player.new(self, x, y)
     self.direction = 0
 
     -- TODO: Animate and change sprite based on direction etc
-    self.img = love.graphics.newImage("blinky.png")
+    self.img = sprite
 
 end
 
 
 function Player.update(self, dt)
     updateTilePos(self)
+    if self.name == "pacman" then
+        randomMovement(self)
+    end
+
     move(self)
 end
+
+function randomMovement(self)
+    -- for now this is a dummy impl to make him move around the map randomly
+    -- it's supposed to check 1 square ahead and decide which direction to go
+    -- then queue up that movement for when it can do so
+    local target = {}
+    target.x = self.tile_x
+    target.y = self.tile_y
+    possible = {}
+    if maze.tilemap[target.y][target.x -1] == 0 and self.direction ~= 1 then 
+        table.insert(possible, 0)
+    end
+    if maze.tilemap[target.y][target.x +1] == 0 and self.direction ~= 0 then 
+        table.insert(possible, 1)
+    end
+    if maze.tilemap[target.y -1][target.x] == 0 and self.direction ~= 3 then
+	table.insert(possible, 2)
+    end
+    if maze.tilemap[target.y +1][target.x] == 0 and self.direction ~=2 then
+	table.insert(possible, 3)
+    end
+    self:changeDirection(possible[math.random( #possible )])
+end
+
+
+
 
 function move(self)
     --pacman chars move 'on rails' in an 8px bound box 

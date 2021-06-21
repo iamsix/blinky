@@ -12,12 +12,19 @@ function love.load()
   
     width = 16
     height = 16
-    blinky = Player((14.5*width) - (width/2), (15*height) - (height/2))
+
+    player = love.graphics.newImage("blinky.png")
+    blinky = Player((14.5*width) - (width/2),
+                    (15*height) - (height/2),
+		    player, "blinky")
 
 
-    pacman = love.graphics.newImage("pacman.png")
+    pac = love.graphics.newImage("pacman.png")
     pacman_X = (14.5*width) - (width/2)
     pacman_Y = (27*height) - (height/2)
+    pacman = Player(pacman_X, pacman_Y, pac, "pacman")
+    pacman.direction = 1
+
 end
 
 totals = 0
@@ -34,6 +41,7 @@ function love.update(dt)
         blinky:changeDirection(3)
     end
     
+    pacman:update(dt)
     blinky:update(dt)
 
     
@@ -44,7 +52,7 @@ function love.draw()
     love.graphics.print("It's simple, we kill the pacman", 20, 20)
     maze.draw(maze)
     
-    love.graphics.draw(pacman, pacman_X, pacman_Y)
+    pacman.draw(pacman)
     blinky.draw(blinky)
     -- TODO: black rectangle hack to hide the left/right sides for wraparound
 end
