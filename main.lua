@@ -4,6 +4,7 @@ function love.load()
     require "maze"
 
     maze = Maze()
+    emptyTiles = {[0] = true, [39] = true, [40] = true}
 
     game_state = "playing"
     
