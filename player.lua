@@ -18,8 +18,13 @@ function Player.new(self, x, y, sprite, name)
      -- 0 = left, 1 = right, 2 = up, 3 = down
     self.direction = 0
 
+    self.queued_move = {}
+    self.new_tile = false
+
     -- TODO: Animate and change sprite based on direction etc
     self.img = sprite
+
+    math.randomseed(os.time())
 
 end
 
@@ -27,20 +32,41 @@ end
 function Player.update(self, dt)
     updateTilePos(self)
     if self.name == "pacman" then
-        randomMovement(self)
+        if self.new_tile and next(self.queued_move) == nil then
+            randomMovement(self)
+            self.new_tile = false
+        end
+        if self:changeDirection(self.queued_move.direction) then
+            self.queued_move = {}
+  --          print("Move executed")
+        end
+        
     end
 
     move(self)
 end
 
-function randomMovement(self)
-    -- for now this is a dummy impl to make him move around the map randomly
-    -- it's supposed to check 1 square ahead and decide which direction to go
-    -- then queue up that movement for when it can do so
+function nextTile(self)
     local target = {}
     target.x = self.tile_x
     target.y = self.tile_y
-    possible = {}
+
+    if self.direction == 0 and maze.tilemap[target.y][target.x -1] == 0 then
+        target.x = target.x -1
+    elseif self.direction == 1 and maze.tilemap[target.y][target.x +1] == 0 then
+        target.x = target.x +1
+    elseif self.direction == 2 and maze.tilemap[target.y -1][target.x] == 0 then
+        target.y = target.y -1
+    elseif self.direction == 3 and maze.tilemap[target.y +1][target.x] == 0 then
+        target.y = target.y +1
+    end
+    return target
+end
+
+function possibleMovements(self, target)
+    -- TODO: remove the 'going backwards' restriction
+    -- it's up to the movement algo to not consider current direction
+    local possible = {}
     if maze.tilemap[target.y][target.x -1] == 0 and self.direction ~= 1 then 
         table.insert(possible, 0)
     end
@@ -48,12 +74,30 @@ function randomMovement(self)
         table.insert(possible, 1)
     end
     if maze.tilemap[target.y -1][target.x] == 0 and self.direction ~= 3 then
-	table.insert(possible, 2)
+	    table.insert(possible, 2)
     end
     if maze.tilemap[target.y +1][target.x] == 0 and self.direction ~=2 then
-	table.insert(possible, 3)
+	    table.insert(possible, 3)
     end
-    self:changeDirection(possible[math.random( #possible )])
+    return possible
+end
+
+function randomMovement(self)
+    local target = nextTile(self)
+    local possible = possibleMovements(self, target)
+
+    newdir = possible[math.random( #possible )]
+    -- TODO : this is a hack to deal with the wraparound, the possible directions will be nil
+    if newdir == nil then
+        newdir = self.direction
+    end
+
+    self.queued_move.tile_x = target.x
+    self.queued_move.tile_y = target.y
+    self.queued_move.direction = newdir
+
+    -- print("Queued ", self.queued_move.direction, "on ", target.x, target.y)
+    
 end
 
 
@@ -122,27 +166,39 @@ function Player.changeDirection(self, dir)
     if dir == 0 and maze.tilemap[self.tile_y][self.tile_x-1] == 0 and horiz_check then
         self.direction = 0
         self.y = (self.tile_y * 16) - 8
+        return true
     elseif dir == 1 and maze.tilemap[self.tile_y][self.tile_x+1] == 0 and horiz_check then
         self.direction = 1
         self.y = (self.tile_y * 16) - 8
+        return true
     elseif dir == 2 and maze.tilemap[self.tile_y-1][self.tile_x] == 0 and vert_check then
         -- ghosts not allowed to go UP to [y,x] 13,26 + 16,26 and 13,14 + 16,14
             -- unless in scatter mode? TODO if I want to do that.
             -- undecided if I want player to be constrained here if I do ghosts
         self.direction = 2
         self.x = (self.tile_x * 16) - 8
+        return true
     elseif dir == 3 and maze.tilemap[self.tile_y+1][self.tile_x] == 0 and vert_check then
         self.direction = 3
         self.x = (self.tile_x * 16) - 8
+        return true
     end
+    return false
 end
 
 function updateTilePos(self)
     -- tile is determined by the point in the exact 'center' of the sprite.
     -- since it's 32x32 there is no actual center 
     -- so it ends up on the top-left pixel of the center 4
-    self.tile_y = math.floor(((self.y + 16) / 16))
-    self.tile_x = math.floor(((self.x + 16) / 16))
+    new_y = math.floor(((self.y + 16) / 16))
+    new_x = math.floor(((self.x + 16) / 16))
+
+    if new_y ~= self.tile_y or new_x ~= self.tile_x then
+        self.new_tile = true
+        self.tile_y = new_y
+        self.tile_x = new_x
+   --     print("Now on", new_x, new_y)
+    end
 end
 
 function Player.draw(self)

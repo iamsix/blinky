@@ -4,6 +4,8 @@ function love.load()
     require "maze"
 
     maze = Maze()
+
+    game_state = "playing"
     
 
     love.window.setMode(480, 600)
@@ -27,9 +29,19 @@ function love.load()
 
 end
 
-totals = 0
+function love.keypressed(k)
+    if k == 'escape' then
+       love.event.quit()
+    end
+ end
+
+--totals = 0
 function love.update(dt)
-    totals = totals + dt
+    --totals = totals + dt
+
+    if game_state == "winner" then
+        return
+    end
 
     if love.keyboard.isDown("left") then
         blinky:changeDirection(0)
@@ -44,11 +56,21 @@ function love.update(dt)
     pacman:update(dt)
     blinky:update(dt)
 
+    checkCollision()
     
 end
 
+function checkCollision()
+    if blinky.tile_x == pacman.tile_x and blinky.tile_y == pacman.tile_y then
+        game_state = "winner"
+    end
+end
 
 function love.draw()
+    if game_state == "winner" then
+        love.graphics.print("WINNER", 20, 20)
+        return
+    end
     love.graphics.print("It's simple, we kill the pacman", 20, 20)
     maze.draw(maze)
     
