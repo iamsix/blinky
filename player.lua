@@ -3,9 +3,14 @@ Player = Object.extend(Object)
 
 -- TODO: subclass this for each char instead of all this per-char specific stuff
 --       or at least a special one for pacman.
+
+-- TODO: Ghost house logic:
+--             staggered exiting the ghosthouse (higher priority)
+--             scripted leaving the ghosthouse (polish stuff, could make them just pop in for now)
+-- TODO: scatter modes (note clyde kind of has that already)
 -- 
 -- only difference is pathfinding:
---    ghosts: simple ecludian distance descision making on turns
+--    ai-ghosts: simple ecludian distance descision making on turns
 --    pacman: eating pellets, avoiding ghosts, power pellets + ghost attack, etc
 --    player: controlled by user
 
@@ -57,7 +62,7 @@ function Player.update(self, dt)
         
     end
 
-    if self.name == "pinky" then
+    if self.name == "pinky" or self.name == "inky" then
         if self.new_tile and self.queued_direction == nil then
             local nt = nextTile(self)
             local possible = possibleMovements(self, nt)
@@ -92,7 +97,28 @@ function findTargetTile(self)
             target.y = pacman.tile_y + 4
         end
     elseif self.name == "inky" then
+        -- first offset 2 tiles from pacman
+        -- then draw a line from Blinky's tile to that offset.
+        --  Now double the line length by extending the line out just as far again
+        if pacman.direction == LEFT then
+            target.x = pacman.tile_x - 2
+            target.y = pacman.tile_y
+        elseif pacman.direction == RIGHT then
+            target.x = pacman.tile_x + 2
+            target.y = pacman.tile_y
+        elseif pacman.direction == UP then
+            -- x modification mimics the original's bug
+            target.x = pacman.tile_x - 2
+            target.y = pacman.tile_y - 2
+        elseif pacman.direction == DOWN then
+            target.x = pacman.tile_x
+            target.y = pacman.tile_y + 2
+        end
+        local xdiff = target.x - blinky.tile_x
+        local ydiff = target.y - blinky.tile_y
 
+        target.x = target.x + xdiff
+        target.y = target.y + ydiff
     end
     self.target_x = target.x
     self.target_y = target.y

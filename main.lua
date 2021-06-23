@@ -1,3 +1,6 @@
+-- consider renaming game 'elroy'
+-- kind of an inside joke thoough, blinky is more recognizable
+
 function love.load()
     Object = require "classic"
     require "player"
@@ -27,9 +30,13 @@ function love.load()
 
 
     p = love.graphics.newImage("inky.png")
-    pinky = Player((17*width) - (width/2),
+    pinky = Player((18*width) - (width/2),
                 (15*height) - (height/2),
                 p, "pinky")
+
+    inky = Player((16*width) - (width/2),
+                (15*height) - (height/2),
+                p, "inky")            
 
     pac = love.graphics.newImage("pacman.png")
     pacman_X = (14.5*width) - (width/2)
@@ -40,7 +47,7 @@ function love.load()
 end
 
 function love.keypressed(k)
-    if k == 'escape' then
+    if k == 'escape' or k == 'q' then
        love.event.quit()
     end
 
@@ -48,8 +55,12 @@ function love.keypressed(k)
         if game_state == "pause" then game_state = "playing" else game_state = "pause" end
     end
 
-    if k == "q" then
+    if k == "s" then
         if pacman.velocity == 0 then pacman.velocity = 2 else pacman.velocity = 0 end
+    end
+
+    if k == "r" then
+        love.event.quit( "restart" )
     end
  end
 
@@ -74,6 +85,7 @@ function love.update(dt)
     pacman:update(dt)
     blinky:update(dt)
     pinky:update(dt)
+    inky:update(dt)
 
     checkCollision()
     
@@ -81,8 +93,8 @@ end
 
 function checkCollision()
     if (blinky.tile_x == pacman.tile_x and blinky.tile_y == pacman.tile_y) or
-       (pinky.tile_x == pacman.tile_x and pinky.tile_y == pacman.tile_y)
-        then
+       (pinky.tile_x == pacman.tile_x and pinky.tile_y == pacman.tile_y) or
+       (inky.tile_x == pacman.tile_x and inky.tile_y == pacman.tile_y) then
         game_state = "winner"
     end
 end
@@ -104,9 +116,15 @@ function love.draw()
     love.graphics.setColor(255,0,10)
     pinky.draw(pinky)
 
+    -- target tile debbugging
     love.graphics.setColor(1,0,0)
     love.graphics.circle("fill", ((pinky.target_x) * width) +8, ((pinky.target_y) * width)+8, 2)
-    
+
+    love.graphics.setColor(0,255,0)
+    pinky.draw(inky)
+    love.graphics.circle("fill", ((inky.target_x) * width) +8, ((inky.target_y) * width)+8, 2)
+    love.graphics.line((blinky.tile_x * 16)+8, (blinky.tile_y*16)+8, (inky.target_x*16)+8, (inky.target_y*16)+8)
+
     love.graphics.setColor(255,255,255)
     -- TODO: black rectangle hack to hide the left/right sides for wraparound
 end
