@@ -1,9 +1,12 @@
 Player = Object.extend(Object)
 -- I can probably use this as a generic character class for all ghosts, pacman, etc.
+
+-- TODO: subclass this for each char instead of all this per-char specific stuff
+--       or at least a special one for pacman.
 -- 
 -- only difference is pathfinding:
 --    ghosts: simple ecludian distance descision making on turns
---    pacman: navigating and eating pellets etc
+--    pacman: eating pellets, avoiding ghosts, power pellets + ghost attack, etc
 --    player: controlled by user
 
 function Player.new(self, x, y, sprite, name)
@@ -18,8 +21,11 @@ function Player.new(self, x, y, sprite, name)
      -- 0 = left, 1 = right, 2 = up, 3 = down
     self.direction = 0
 
-    self.queued_move = {}
+    self.queued_direction = nil
     self.new_tile = false
+
+    self.target_x = 0
+    self.target_y = 0
 
     -- TODO: Animate and change sprite based on direction etc
     self.img = sprite
@@ -39,19 +45,84 @@ function Player.update(self, dt)
             end
             
         end
-        if self.new_tile and next(self.queued_move) == nil then
+        if self.new_tile and self.queued_direction == nil then
             randomMovement(self)
             self.new_tile = false
         end
-        if self:changeDirection(self.queued_move.direction) then
-            self.queued_move = {}
-  --          print("Move executed")
+        if self.queued_direction and self:changeDirection(self.queued_direction) then
+            -- print("Move executed", self.queued_direction)
+            self.queued_direction = nil
+            
         end
         
     end
 
+    if self.name == "pinky" then
+        if self.new_tile and self.queued_direction == nil then
+            local nt = nextTile(self)
+            local possible = possibleMovements(self, nt)
+            target = findTargetTile(self)
+            self.queued_direction = decideDirectionEcludian(self, target, possible)
+            self.new_tile = false
+        end
+        if self.queued_direction and self:changeDirection(self.queued_direction) then
+            self.queued_direction = nil
+  --          print("Move executed")
+        end
+    end
+
     move(self)
 end
+
+function findTargetTile(self)
+    local target = {}
+    if self.name == "pinky" then
+        if pacman.direction == LEFT then
+            target.x = pacman.tile_x - 4
+            target.y = pacman.tile_y
+        elseif pacman.direction == RIGHT then
+            target.x = pacman.tile_x + 4
+            target.y = pacman.tile_y
+        elseif pacman.direction == UP then
+            -- x modification mimics the original's bug
+            target.x = pacman.tile_x - 4
+            target.y = pacman.tile_y - 4
+        elseif pacman.direction == DOWN then
+            target.x = pacman.tile_x
+            target.y = pacman.tile_y + 4
+        end
+    elseif self.name == "inky" then
+
+    end
+    self.target_x = target.x
+    self.target_y = target.y
+    return target
+end
+
+function decideDirectionEcludian(self, target, possible)
+    -- ecludian distance, same for all ghosts
+    local min = nil
+    local dir = nil
+    for _, _v in ipairs(possible) do
+        local d,ty,tx = unpack(_v)
+        local dis = distance(tx, ty, target.x, target.y)
+        --print("option", d, dis)
+        if min == nil or dis < min then
+            min = dis
+            dir = d
+        end
+    end
+    --print("best option", dir)
+    
+    return dir
+end
+
+function distance ( x1, y1, x2, y2 )
+    local dx = x1 - x2
+    local dy = y1 - y2
+    return math.sqrt ( dx * dx + dy * dy )
+end
+
 
 function nextTile(self)
     local target = {}
@@ -72,19 +143,26 @@ end
 
 function possibleMovements(self, target)
     -- TODO: remove the 'going backwards' restriction
-    -- it's up to the movement algo to not consider current direction
+    -- it's up to the movement algo to not go backwards
+    -- change to possible[0] = coordinates ?
+    -- ipairs seems strange when you do that
+    -- might just change direction to a string entirely, then index possible with "up" etc
+    -- then for checking direction I check the keys of the table
+    -- alternatively do 1= left 2 = right, 3=up, 4 = down etc.
+    -- annoying to renumber them all but 0 is just problematic many times so far
+
     local possible = {}
     if emptyTiles[maze.tilemap[target.y][target.x -1]] and self.direction ~= 1 then 
-        table.insert(possible, 0)
+        table.insert(possible, {0, target.y, target.x -1})
     end
     if emptyTiles[maze.tilemap[target.y][target.x +1]] and self.direction ~= 0 then 
-        table.insert(possible, 1)
+        table.insert(possible, {1, target.y, target.x +1})
     end
     if emptyTiles[maze.tilemap[target.y -1][target.x]] and self.direction ~= 3 then
-	    table.insert(possible, 2)
+	    table.insert(possible, {2, target.y -1,target.x})
     end
     if emptyTiles[maze.tilemap[target.y +1][target.x]] and self.direction ~=2 then
-	    table.insert(possible, 3)
+	    table.insert(possible, {3, target.y +1, target.x})
     end
     return possible
 end
@@ -94,17 +172,20 @@ function randomMovement(self)
     local target = nextTile(self)
     local possible = possibleMovements(self, target)
 
-    newdir = possible[math.random( #possible )]
+    local r = possible[math.random( #possible )]
+    if r == nil then
+        newdir = self.direction
+    else
+        newdir = unpack(r)
+    end
     -- this is a hack to deal with the wraparound, the possible directions will be nil
     if newdir == nil then
         newdir = self.direction
     end
 
-    self.queued_move.tile_x = target.x
-    self.queued_move.tile_y = target.y
-    self.queued_move.direction = newdir
+    self.queued_direction = newdir
 
-    -- print("Queued ", self.queued_move.direction, "on ", target.x, target.y)
+    -- print("Queued ", self.queued_direction, "on ", target.x, target.y)
     
 end
 
