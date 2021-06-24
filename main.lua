@@ -36,7 +36,11 @@ function love.load()
 
     inky = Player((16*width) - (width/2),
                 (15*height) - (height/2),
-                p, "inky")            
+                p, "inky")          
+    
+    clyde = Player((12*width) - (width/2),
+                (15*height) - (height/2),
+                p, "clyde")   
 
     pac = love.graphics.newImage("pacman.png")
     pacman_X = (14.5*width) - (width/2)
@@ -86,6 +90,7 @@ function love.update(dt)
     blinky:update(dt)
     pinky:update(dt)
     inky:update(dt)
+    clyde:update(dt)
 
     checkCollision()
     
@@ -112,11 +117,16 @@ function love.draw()
     blinky.draw(blinky)
 
 
-    -- hax for now just colour the grey one
+    -- hax for now just colour a grey one
     love.graphics.setColor(255,0,10)
     pinky.draw(pinky)
 
     -- target tile debbugging
+    love.graphics.setColor(255,128,0)
+    love.graphics.circle("fill", ((clyde.target_x) * width) +8, ((clyde.target_y) * width)+8, 2)
+    pinky.draw(clyde)
+    
+
     love.graphics.setColor(1,0,0)
     love.graphics.circle("fill", ((pinky.target_x) * width) +8, ((pinky.target_y) * width)+8, 2)
 

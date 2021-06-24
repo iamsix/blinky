@@ -62,7 +62,7 @@ function Player.update(self, dt)
         
     end
 
-    if self.name == "pinky" or self.name == "inky" then
+    if self.name == "pinky" or self.name == "inky" or self.name == "clyde" then
         if self.new_tile and self.queued_direction == nil then
             local nt = nextTile(self)
             local possible = possibleMovements(self, nt)
@@ -119,6 +119,15 @@ function findTargetTile(self)
 
         target.x = target.x + xdiff
         target.y = target.y + ydiff
+        
+    elseif self.name == "clyde" then
+        if distance(self.tile_x, self.tile_y, pacman.tile_x, pacman.tile_y) > 8 then
+            target.x = pacman.tile_x
+            target.y = pacman.tile_y
+        else
+            target.x = 1
+            target.y = 36
+        end
     end
     self.target_x = target.x
     self.target_y = target.y
@@ -176,6 +185,10 @@ function possibleMovements(self, target)
     -- then for checking direction I check the keys of the table
     -- alternatively do 1= left 2 = right, 3=up, 4 = down etc.
     -- annoying to renumber them all but 0 is just problematic many times so far
+
+    -- ghosts not allowed to go UP to [y,x] 13,26 + 16,26 and 13,14 + 16,14
+    -- unless in scatter mode? TODO if I want to do that.
+    -- undecided if I want player to be constrained here if I do ghosts
 
     local possible = {}
     if emptyTiles[maze.tilemap[target.y][target.x -1]] and self.direction ~= 1 then 
@@ -288,9 +301,6 @@ function Player.changeDirection(self, dir)
         self.y = (self.tile_y * 16) - 8
         return true
     elseif dir == 2 and emptyTiles[maze.tilemap[self.tile_y-1][self.tile_x]] and vert_check then
-        -- ghosts not allowed to go UP to [y,x] 13,26 + 16,26 and 13,14 + 16,14
-            -- unless in scatter mode? TODO if I want to do that.
-            -- undecided if I want player to be constrained here if I do ghosts
         self.direction = 2
         self.x = (self.tile_x * 16) - 8
         return true
